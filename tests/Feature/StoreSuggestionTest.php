@@ -7,7 +7,9 @@ use App\Models\Suggestion;
 use App\Models\SuggestionAttachment;
 use App\Models\Role;
 use App\Models\User;
+use App\Events\NewManagementTicket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -52,6 +54,7 @@ class StoreSuggestionTest extends TestCase
 
     public function test_new_ticket_creates_a_notification_for_active_management_users(): void
     {
+        Event::fake();
         $employee = User::factory()->create();
         $manager = User::factory()->create(['is_active' => true]);
         $inactiveManager = User::factory()->create(['is_active' => false]);
@@ -75,6 +78,7 @@ class StoreSuggestionTest extends TestCase
             'title' => 'Tiket baru masuk',
         ]);
         $this->assertDatabaseMissing('notifications', ['user_id' => $inactiveManager->id]);
+        Event::assertDispatched(NewManagementTicket::class, fn (NewManagementTicket $event) => $event->suggestionId === $response->json('suggestion.id'));
     }
 
     public function test_anonymous_suggestion_does_not_store_employee_identity(): void

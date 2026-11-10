@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
 
 const initialAccount = { first_name: '', last_name: '', username: '', email: '', password: '', password_confirmation: '' };
 
@@ -21,7 +23,7 @@ function Notice({ children, type = 'error' }) {
 function NotificationMenu({ notifications, onOpen, open, setOpen, unreadCount }) {
     const formatTime = (value) => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
 
-    return <div className="relative"><button aria-expanded={open} aria-haspopup="dialog" aria-label={unreadCount ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'} className="relative flex min-h-11 items-center gap-2 rounded-xl border border-[#aebfb6] px-3 text-sm font-semibold text-[#315b50] hover:bg-[#edf3ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6b1742]" onClick={() => setOpen((value) => !value)} type="button"><span aria-hidden="true">◉</span><span className="hidden sm:inline">Notifikasi</span>{unreadCount > 0 && <span aria-label={`${unreadCount} belum dibaca`} className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#b55234] px-1 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>{open && <section aria-label="Notifikasi tiket" className="absolute right-0 z-30 mt-2 w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6] shadow-xl"><div className="border-b border-[#e0e7e1] px-4 py-3"><h2 className="font-serif text-lg font-bold">Notifikasi tiket</h2><p className="mt-1 text-xs text-[#587068]">Diperbarui otomatis setiap 10 detik.</p></div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.map((notification) => <button className={`block w-full border-b border-[#e0e7e1] px-4 py-3 text-left last:border-b-0 hover:bg-[#edf3ee] ${notification.read_at ? 'text-[#587068]' : 'bg-[#fff8f2] text-[#183f37]'}`} key={notification.id} onClick={() => onOpen(notification)} type="button"><span className="block text-sm font-semibold">{notification.title}</span><span className="mt-1 block text-sm leading-5">{notification.body}</span><span className="mt-1 block text-xs">{formatTime(notification.created_at)}</span></button>) : <p className="px-4 py-8 text-center text-sm text-[#587068]">Belum ada notifikasi tiket.</p>}</div></section>}</div>;
+    return <div className="relative"><button aria-expanded={open} aria-haspopup="dialog" aria-label={unreadCount ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'} className="relative flex min-h-11 items-center gap-2 rounded-xl border border-[#aebfb6] px-3 text-sm font-semibold text-[#315b50] hover:bg-[#edf3ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6b1742]" onClick={() => setOpen((value) => !value)} type="button"><span aria-hidden="true">◉</span><span className="hidden sm:inline">Notifikasi</span>{unreadCount > 0 && <span aria-label={`${unreadCount} belum dibaca`} className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#b55234] px-1 text-xs font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}</button>{open && <section aria-label="Notifikasi tiket" className="absolute right-0 z-30 mt-2 w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6] shadow-xl"><div className="border-b border-[#e0e7e1] px-4 py-3"><h2 className="font-serif text-lg font-bold">Notifikasi tiket</h2><p className="mt-1 text-xs text-[#587068]">Dikirim langsung melalui Reverb.</p></div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.map((notification) => <button className={`block w-full border-b border-[#e0e7e1] px-4 py-3 text-left last:border-b-0 hover:bg-[#edf3ee] ${notification.read_at ? 'text-[#587068]' : 'bg-[#fff8f2] text-[#183f37]'}`} key={notification.id} onClick={() => onOpen(notification)} type="button"><span className="block text-sm font-semibold">{notification.title}</span><span className="mt-1 block text-sm leading-5">{notification.body}</span><span className="mt-1 block text-xs">{formatTime(notification.created_at)}</span></button>) : <p className="px-4 py-8 text-center text-sm text-[#587068]">Belum ada notifikasi tiket.</p>}</div></section>}</div>;
 }
 
 function Login({ onLogin }) {
@@ -224,7 +226,29 @@ export default function ManagementPortal() {
     };
 
     useEffect(() => { jsonRequest('/management/auth/user').then(({ user: account }) => { setUser(account); load(account); }).catch(() => setLoading(false)); }, []);
-    useEffect(() => { if (!user) return undefined; loadNotifications(); const interval = window.setInterval(loadNotifications, 10000); return () => window.clearInterval(interval); }, [user?.id]);
+    useEffect(() => {
+        if (!user) return undefined;
+        loadNotifications();
+        if (!import.meta.env.VITE_REVERB_APP_KEY) return undefined;
+
+        const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'http';
+        const echo = new Echo({
+            broadcaster: 'reverb',
+            key: import.meta.env.VITE_REVERB_APP_KEY,
+            Pusher,
+            wsHost: import.meta.env.VITE_REVERB_HOST ?? window.location.hostname,
+            wsPort: Number(import.meta.env.VITE_REVERB_PORT ?? 80),
+            wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
+            forceTLS: scheme === 'https',
+            enabledTransports: ['ws', 'wss'],
+        });
+        const channel = echo.private('management.notifications').listen('.ticket.created', () => loadNotifications());
+
+        return () => {
+            channel.stopListening('.ticket.created');
+            echo.disconnect();
+        };
+    }, [user?.id]);
 
     const perform = async (action, success) => { setError(''); setNotice(''); try { await action(); setNotice(success); await load(); } catch (exception) { setError(exception.message); } };
     const signOut = async () => { await jsonRequest('/management/auth/logout', { method: 'POST' }); setUser(null); setSuggestions([]); setCategories([]); setUsers([]); setRoles([]); };

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NewManagementTicket;
 use App\Http\Requests\ClaimAnonymousSuggestionRequest;
 use App\Http\Requests\StoreSuggestionRequest;
 use App\Models\Suggestion;
@@ -98,6 +99,7 @@ class SuggestionController extends Controller
         });
 
         $this->notifyManagementOfNewTicket($suggestion);
+        event(new NewManagementTicket($suggestion->id, $suggestion->ticket_number, $suggestion->title));
 
         return response()->json([
             'message' => 'Saran berhasil disimpan sebagai tiket.',
