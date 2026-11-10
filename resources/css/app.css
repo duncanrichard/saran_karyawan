@@ -1,0 +1,377 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+.employee-portal {
+    background: #0b0d14;
+}
+
+.employee-portal button,
+.employee-portal a[href],
+.employee-portal input[type='checkbox'],
+.employee-portal select,
+.employee-portal label[for] {
+    cursor: pointer;
+}
+
+.session-sign-out {
+    cursor: pointer;
+}
+
+.employee-session .employee-portal > section.min-h-screen > div > div:first-child > button {
+    display: none;
+}
+
+.employee-portal label[for='attachment'] {
+    border-color: #7d9789;
+    background: #fff9de;
+    color: #183f37;
+}
+
+.employee-portal label[for='attachment']:hover {
+    border-color: #315b50;
+    background: #fff1a8;
+}
+
+.employee-portal label[for='attachment'] svg {
+    color: #315b50;
+}
+
+.employee-portal > section.min-h-screen {
+    background:
+        radial-gradient(circle at 92% 10%, rgb(26 87 217 / 50%), transparent 28rem),
+        radial-gradient(circle at 10% 94%, rgb(233 0 112 / 36%), transparent 25rem),
+        #0b0d14;
+    color: #f7f7f2;
+}
+
+.employee-portal > section.min-h-screen h1,
+.employee-portal > section.min-h-screen .font-serif {
+    color: #f7f7f2;
+}
+
+.employee-portal > section.min-h-screen .text-\[\#587068\] {
+    color: #c9d1dd;
+}
+
+.employee-portal > section.min-h-screen .text-\[\#b55234\] {
+    color: #f3c2aa;
+}
+
+.employee-portal > section.min-h-screen .text-\[\#315b50\] {
+    color: #f3c2aa;
+}
+
+.employee-session .text-\[\#ffe200\] {
+    color: #f3c2aa;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:first-child {
+    background: linear-gradient(135deg, #123b92 0%, #07132e 62%, #1c0438 100%);
+    border: 1px solid rgb(92 152 255 / 65%);
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:first-child > span:first-child {
+    background: #ffe200;
+    color: #10131d;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:first-child > span:nth-last-child(2) {
+    color: #ffe200;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:last-child {
+    background: linear-gradient(135deg, #fcf9ef 0%, #f0eafd 100%);
+    border-color: #df88c0;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:last-child > span:first-child {
+    background: #e90070;
+    color: #fff;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:last-child .font-serif {
+    color: #191226;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:last-child .text-\[\#587068\] {
+    color: #5d5069;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button:last-child > span:nth-last-child(2) {
+    color: #b40058;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button > span:nth-last-child(2) {
+    position: static;
+    display: inline-flex;
+    margin-top: 1.5rem;
+}
+
+.employee-portal > section:first-child > div > div:last-child > button > span:last-child {
+    display: none;
+}
+
+.employee-portal > section:first-child:has(form) {
+    background: #f5f1e8;
+    color: #183f37;
+}
+
+.employee-portal > section:first-child:has(form) h1,
+.employee-portal > section:first-child:has(form) .font-serif {
+    color: #183f37;
+}
+
+.employee-portal > section:first-child:has(form) .text-\[\#587068\] {
+    color: #587068;
+}
+
+.employee-portal > section:first-child:has(form) .text-\[\#b55234\] {
+    color: #b55234;
+}
+
+.employee-portal > section:first-child:has(form) > div:first-of-type h1,
+.employee-portal > section:first-child:has(form) > div:first-of-type .font-serif {
+    color: #fff;
+}
+
+.employee-portal > section:first-child:has(form) > div:first-of-type {
+    margin-top: 1.25rem;
+}
+
+.employee-portal > section:first-child:not(.min-h-screen) {
+    min-height: 100vh;
+    background: #f5f1e8;
+    color: #183f37;
+}
+
+.employee-portal > section:first-child:not(.min-h-screen) h1,
+.employee-portal > section:first-child:not(.min-h-screen) h2,
+.employee-portal > section:first-child:not(.min-h-screen) .font-serif {
+    color: #183f37;
+}
+
+.employee-portal > section:first-child:not(.min-h-screen) .text-\[\#587068\] {
+    color: #587068;
+}
+
+.employee-portal > section:first-child:not(.min-h-screen) .text-\[\#b55234\] {
+    color: #b55234;
+}
+
+.employee-portal form:has(fieldset) {
+    display: flex;
+    flex-direction: column;
+}
+
+.employee-portal form:has(fieldset) > div:first-of-type {
+    order: 1;
+    grid-template-columns: 1fr;
+    margin-top: 0;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e0e7e1;
+}
+
+.employee-portal form:has(fieldset) > div:first-of-type > label {
+    order: -1;
+    min-height: 8.5rem;
+    border: 2px solid #e90070;
+    background: linear-gradient(135deg, #fff1f7 0%, #f5efff 100%);
+    padding: 1.5rem;
+}
+
+.employee-portal form:has(fieldset) > div:first-of-type > label > input {
+    width: 1.5rem;
+    height: 1.5rem;
+    accent-color: #a40054;
+}
+
+.employee-portal form:has(fieldset) > div:first-of-type > label > span > span:first-child {
+    font-size: 1.125rem;
+    color: #5a1240;
+}
+
+.employee-portal form:has(fieldset) > div:first-of-type > label > span > span:last-child {
+    margin-top: 0.45rem;
+    color: #76506b;
+}
+
+.employee-portal form:has(fieldset) > fieldset {
+    order: 2;
+    margin-top: 2rem;
+}
+
+.employee-portal form:has(fieldset) > div:last-of-type {
+    order: 3;
+}
+
+@media (max-width: 639px) {
+    .session-sign-out {
+        right: 1rem;
+        top: 0.75rem;
+        min-width: 5.5rem;
+        justify-content: center;
+    }
+
+    .session-back-button {
+        min-width: 7.5rem;
+        background: #edf3ee;
+    }
+
+    .session-back-button:active,
+    .session-sign-out:active {
+        transform: scale(0.97);
+    }
+
+    .employee-portal > section:first-child:has(form) {
+        padding-top: 1rem;
+    }
+
+    .employee-portal > section:first-child {
+        padding-top: 2rem;
+    }
+
+    .employee-portal > section:first-child > div > div:first-child > .mt-16 {
+        margin-top: 3rem;
+    }
+
+    .employee-portal > section:first-child > div > div:last-child > button {
+        min-height: 0;
+        padding: 1.5rem;
+    }
+
+    .employee-portal > section:first-child > div > div:last-child > button > .mt-8 {
+        margin-top: 1.25rem;
+    }
+
+    .employee-portal > section:first-child > div > div:last-child > button > span:nth-last-child(2) {
+        position: static;
+        display: inline-flex;
+        margin-top: 1.5rem;
+    }
+
+    .employee-portal > section:first-child > div > div:last-child > button > span:last-child {
+        display: none;
+    }
+
+    .ticket-inbox {
+        padding: 1rem 1rem 2rem;
+    }
+
+    .ticket-inbox > .inline-flex {
+        min-height: 44px;
+    }
+
+    .ticket-inbox-heading {
+        margin-top: 1.5rem;
+        align-items: stretch;
+        gap: 1.25rem;
+    }
+
+    .ticket-inbox-heading h1 {
+        font-size: 2.25rem;
+        line-height: 1;
+    }
+
+    .ticket-inbox-heading > button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .ticket-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .ticket-summary > div {
+        min-width: 0;
+        border-radius: 1rem;
+        padding: 0.75rem;
+    }
+
+    .ticket-summary p:first-child {
+        min-height: 2.25rem;
+        font-size: 0.68rem;
+        line-height: 1rem;
+    }
+
+    .ticket-summary p:last-child {
+        font-size: 1.7rem;
+        line-height: 1.8rem;
+    }
+
+    .ticket-workspace {
+        margin-top: 1.25rem;
+    }
+
+    .ticket-list-panel {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+    }
+
+    .ticket-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .ticket-filters > label:first-child,
+    .ticket-filters > label:nth-child(2) {
+        grid-column: span 2;
+    }
+
+    .ticket-list-scroll {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .ticket-row {
+        min-height: 7.5rem;
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+
+    .ticket-row:active,
+    .ticket-inbox-heading > button:active {
+        transform: scale(0.985);
+    }
+
+    .ticket-detail-panel.mobile-detail-closed {
+        display: none;
+    }
+
+    .ticket-detail-panel.mobile-detail-open {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: block;
+        overflow-y: auto;
+        border: 0;
+        border-radius: 0;
+        padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
+    }
+
+    .ticket-detail-panel .mobile-back-to-list {
+        display: inline-flex;
+        margin-bottom: 1.5rem;
+    }
+
+    .ticket-detail-panel.mobile-detail-open h2 {
+        font-size: 2rem;
+    }
+}
+
+@media (min-width: 640px) {
+    .mobile-back-to-list {
+        display: none;
+    }
+}

@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1500" role="img" aria-labelledby="title description">
+  <title id="title">Alur sistem saran karyawan</title>
+  <desc id="description">Diagram tujuh tahap, dari karyawan mengirim saran hingga hasil dan umpan balik dicatat.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#31524a"/>
+    </marker>
+    <style>
+      .background { fill: #f6f1e8; }
+      .title { font: 700 44px Arial, sans-serif; fill: #173c36; letter-spacing: -.7px; }
+      .subtitle { font: 400 21px Arial, sans-serif; fill: #4d625d; }
+      .card { fill: #ffffff; stroke: #d3ddd7; stroke-width: 2; }
+      .card-key { fill: #173c36; stroke: #173c36; stroke-width: 2; }
+      .number { font: 700 20px Arial, sans-serif; fill: #173c36; text-anchor: middle; dominant-baseline: middle; }
+      .number-key { font: 700 20px Arial, sans-serif; fill: #ffffff; text-anchor: middle; dominant-baseline: middle; }
+      .step { font: 700 22px Arial, sans-serif; fill: #173c36; }
+      .step-key { font: 700 22px Arial, sans-serif; fill: #ffffff; }
+      .detail { font: 400 17px Arial, sans-serif; fill: #536762; }
+      .detail-key { font: 400 17px Arial, sans-serif; fill: #dbe8e1; }
+      .arrow { stroke: #31524a; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .tag { font: 700 14px Arial, sans-serif; fill: #a64b2a; letter-spacing: 1px; }
+      .footer { font: 400 17px Arial, sans-serif; fill: #4d625d; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect class="background" width="1200" height="1500"/>
+  <text x="600" y="94" class="title" text-anchor="middle">Alur Sistem Saran Karyawan</text>
+  <text x="600" y="132" class="subtitle" text-anchor="middle">Setiap saran memiliki status, penanggung jawab, dan jejak tindak lanjut.</text>
+
+  <path class="arrow" d="M 600 310 L 600 365"/>
+  <path class="arrow" d="M 600 480 L 600 535"/>
+  <path class="arrow" d="M 600 650 L 600 705"/>
+  <path class="arrow" d="M 600 820 L 600 875"/>
+  <path class="arrow" d="M 600 990 L 600 1045"/>
+  <path class="arrow" d="M 600 1160 L 600 1215"/>
+
+  <g transform="translate(170 190)">
+    <rect class="card-key" width="860" height="120" rx="14"/>
+    <circle cx="62" cy="60" r="27" fill="#a64b2a"/>
+    <text x="62" y="61" class="number-key">1</text>
+    <text x="116" y="48" class="step-key">Karyawan mengirim saran</text>
+    <text x="116" y="78" class="detail-key">Pilih kategori, tulis usulan, dan tentukan pengiriman anonim atau terbuka.</text>
+  </g>
+
+  <g transform="translate(170 365)">
+    <rect class="card" width="860" height="115" rx="14"/>
+    <circle cx="62" cy="57" r="27" fill="#dce9e3"/>
+    <text x="62" y="58" class="number">2</text>
+    <text x="116" y="45" class="step">Tiket dan status diterbitkan</text>
+    <text x="116" y="75" class="detail">Sistem memberi nomor tiket dan status awal: Diterima.</text>
+  </g>
+
+  <g transform="translate(170 535)">
+    <rect class="card" width="860" height="115" rx="14"/>
+    <circle cx="62" cy="57" r="27" fill="#dce9e3"/>
+    <text x="62" y="58" class="number">3</text>
+    <text x="116" y="45" class="step">HR atau admin meninjau</text>
+    <text x="116" y="75" class="detail">Periksa kelengkapan, kategori, urgensi, dan kebutuhan jalur pelaporan khusus.</text>
+  </g>
+
+  <g transform="translate(170 705)">
+    <rect class="card" width="860" height="115" rx="14"/>
+    <circle cx="62" cy="57" r="27" fill="#dce9e3"/>
+    <text x="62" y="58" class="number">4</text>
+    <text x="116" y="45" class="step">PIC departemen ditetapkan</text>
+    <text x="116" y="75" class="detail">Admin meneruskan saran kepada pihak yang berwenang dan menetapkan tenggat respons.</text>
+  </g>
+
+  <g transform="translate(170 875)">
+    <rect class="card" width="860" height="115" rx="14"/>
+    <circle cx="62" cy="57" r="27" fill="#dce9e3"/>
+    <text x="62" y="58" class="number">5</text>
+    <text x="116" y="45" class="step">PIC memberi pembaruan</text>
+    <text x="116" y="75" class="detail">Tanggapan dapat berupa rencana kerja, permintaan klarifikasi, penolakan beralasan, atau penundaan.</text>
+  </g>
+
+  <g transform="translate(170 1045)">
+    <rect class="card" width="860" height="115" rx="14"/>
+    <circle cx="62" cy="57" r="27" fill="#dce9e3"/>
+    <text x="62" y="58" class="number">6</text>
+    <text x="116" y="45" class="step">HR memantau penyelesaian</text>
+    <text x="116" y="75" class="detail">Sistem mengingatkan PIC ketika tindak lanjut belum diperbarui sesuai tenggat.</text>
+  </g>
+
+  <g transform="translate(170 1215)">
+    <rect class="card-key" width="860" height="120" rx="14"/>
+    <circle cx="62" cy="60" r="27" fill="#a64b2a"/>
+    <text x="62" y="61" class="number-key">7</text>
+    <text x="116" y="48" class="step-key">Hasil dicatat dan dikembalikan</text>
+    <text x="116" y="78" class="detail-key">Karyawan menerima hasil, memberi umpan balik, dan manajemen melihat pola perbaikan.</text>
+  </g>
+
+  <text x="600" y="1420" class="tag" text-anchor="middle">PRINSIP UTAMA</text>
+  <text x="600" y="1452" class="footer">Anonimitas, akuntabilitas PIC, dan alasan keputusan perlu tetap tercatat.</text>
+</svg>
