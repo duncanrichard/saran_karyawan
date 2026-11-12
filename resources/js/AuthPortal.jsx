@@ -180,6 +180,7 @@ export default function AuthPortal() {
                 <h2 className="mt-3 font-serif text-3xl font-bold">Informasi akun</h2>
                 <p className="mt-2 text-sm leading-6 text-[#c9d1dd]">Gunakan username yang akan dipakai saat masuk.</p>
                 <ErrorMessage error={error} />
+                {error.includes('Email perusahaan tersebut sudah terdaftar.') && <button className="-mt-2 mb-5 min-h-11 rounded-xl border border-[#ffe200]/70 px-4 text-left text-sm font-semibold text-[#ffe200] hover:bg-[#26375f]" onClick={() => { setError(''); setSuccess('Masukkan OTP terakhir. Jika kodenya kedaluwarsa atau tidak diterima, kirim ulang OTP.'); setVerification({ email: registration.email, code: '' }); setMode('verify'); }} type="button">Email sudah terdaftar? Lanjutkan aktivasi email</button>}
                 <form className="mt-6 grid gap-4" onSubmit={(event) => {
                     event.preventDefault();
                     submit('/auth/register', registration, (data) => {
@@ -252,13 +253,17 @@ export default function AuthPortal() {
             <AuthLayout title="Verifikasi email perusahaan" subtitle="Masukkan kode OTP enam digit yang dikirim ke email perusahaan Anda.">
                 <p className="text-xs font-bold tracking-[0.14em] text-[#ffe200]">VERIFIKASI OTP</p>
                 <h2 className="mt-3 font-serif text-3xl font-bold">Aktifkan akun</h2>
+                <SuccessMessage message={success} />
                 <ErrorMessage error={error} />
                 <form className="mt-6 grid gap-5" onSubmit={(event) => { event.preventDefault(); submit('/auth/verify-email', verification, (data) => { setSuccess(data.message); setMode('login'); }); }}>
                     <label className="grid gap-2 text-sm font-semibold">Email perusahaan<input className={inputClassName} onChange={(event) => setVerification({ ...verification, email: event.target.value })} type="email" value={verification.email} /></label>
                     <label className="grid gap-2 text-sm font-semibold">Kode OTP<input className={`${inputClassName} font-mono text-lg tracking-[0.35em]`} inputMode="numeric" maxLength="6" onChange={(event) => setVerification({ ...verification, code: event.target.value.replace(/\D/g, '') })} value={verification.code} /></label>
                     <button className="min-h-12 rounded-xl bg-[#ffe200] px-5 text-sm font-bold text-[#111421] hover:bg-[#fff06a] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading} type="submit">{loading ? 'Memverifikasi...' : 'Verifikasi email'}</button>
                 </form>
-                <button className="mt-5 text-sm font-semibold text-[#ffe200] hover:text-white" onClick={() => { setError(''); setMode('login'); }} type="button">Kembali ke Sign in</button>
+                <div className="mt-5 grid justify-items-start gap-2">
+                    <button className="min-h-11 text-left text-sm font-semibold text-[#ffe200] hover:text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={loading} onClick={() => { setSuccess(''); submit('/auth/resend-verification-otp', { email: verification.email }, (data) => { setVerification({ ...verification, code: '' }); setSuccess(data.message); }); }} type="button">{loading ? 'Memproses...' : 'OTP tidak diterima atau kedaluwarsa? Kirim ulang OTP'}</button>
+                    <button className="min-h-11 text-left text-sm font-semibold text-[#ffe200] hover:text-white" onClick={() => { setError(''); setMode('login'); }} type="button">Kembali ke Sign in</button>
+                </div>
             </AuthLayout>
         );
     }

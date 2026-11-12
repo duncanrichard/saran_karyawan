@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\SuggestionCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,5 +38,23 @@ class ManagementAccessTest extends TestCase
         $manager->assignRole('management');
 
         $this->actingAs($manager)->get('/management')->assertOk();
+    }
+
+    public function test_management_cannot_manage_categories(): void
+    {
+        Role::firstOrCreate(['name' => 'management', 'guard_name' => 'web']);
+        $manager = User::factory()->create();
+        $manager->assignRole('management');
+        $category = SuggestionCategory::query()->create([
+            'name' => 'Kategori sementara',
+            'description' => 'Kategori yang aman dihapus.',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($manager)
+            ->deleteJson("/management/categories/{$category->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('suggestion_categories', ['id' => $category->id]);
     }
 }

@@ -25,6 +25,117 @@
     cursor: pointer;
 }
 
+.management-users-table .dt-container {
+    color: #49665d;
+    overflow-x: visible;
+}
+
+.management-users-table .dt-layout-row {
+    align-items: center;
+    gap: 1rem;
+    margin: 0 0 1rem;
+}
+
+.management-users-table .dt-layout-row:first-child {
+    margin-top: 0;
+    padding: 0.25rem 0 0.75rem;
+    border-bottom: 1px solid #d4ddd6;
+}
+
+.management-users-table .dt-layout-row:last-child {
+    margin: 1rem 0 0;
+}
+
+.management-users-table .dt-length label {
+    white-space: nowrap;
+}
+
+.management-users-table .dt-input,
+.management-users-table .dt-select {
+    min-height: 2.75rem;
+    border: 1px solid #aebfb6;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: #183f37;
+}
+
+.management-users-table .dt-input {
+    min-width: min(18rem, 100%);
+    padding: 0.5rem 0.75rem;
+}
+
+.management-users-table .dt-select {
+    padding: 0.4rem 2rem 0.4rem 0.75rem;
+}
+
+.management-users-table table.dataTable {
+    border: 1px solid #d4ddd6;
+    border-collapse: separate;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.management-users-table table.dataTable thead > tr > th {
+    background: #f7f2f8;
+    color: #3b3040;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.management-users-table table.dataTable > tbody > tr {
+    background: #fbfaf6;
+}
+
+.management-users-table table.dataTable > tbody > tr > td {
+    color: #49665d;
+}
+
+.management-users-table .dt-paging-button {
+    min-height: 2.5rem;
+    border-radius: 0.65rem;
+}
+
+.management-users-table .dt-paging-button.current {
+    border-color: #183f37 !important;
+    background: #183f37 !important;
+    color: #fff !important;
+}
+
+.role-select__control {
+    min-height: 2.75rem !important;
+    border-color: #aebfb6 !important;
+    border-radius: 0.75rem !important;
+    box-shadow: none !important;
+}
+
+.role-select__control--is-focused {
+    border-color: #315b50 !important;
+    box-shadow: 0 0 0 2px rgb(49 91 80 / 20%) !important;
+}
+
+.role-select__menu {
+    z-index: 60 !important;
+}
+
+.role-select__option--is-focused {
+    background: #edf3ee !important;
+    color: #183f37 !important;
+}
+
+.role-select__option--is-selected {
+    background: #183f37 !important;
+}
+
+@media (max-width: 639px) {
+    .management-users-table .dt-container {
+        overflow-x: auto;
+    }
+
+    .management-users-table table.dataTable {
+        min-width: 52rem;
+    }
+}
+
 .employee-session .employee-portal > section.min-h-screen > div > div:first-child > button {
     display: none;
 }

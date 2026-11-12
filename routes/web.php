@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->name('auth.')->group(function (): void {
     Route::post('/register', [EmployeeAuthController::class, 'register'])->name('register');
     Route::post('/verify-email', [EmployeeAuthController::class, 'verifyEmail'])->name('verify-email');
+    Route::post('/resend-verification-otp', [EmployeeAuthController::class, 'resendVerificationOtp'])->middleware('throttle:3,1')->name('resend-verification-otp');
     Route::post('/forgot-password', [EmployeeAuthController::class, 'forgotPassword'])->middleware('throttle:3,1')->name('forgot-password');
     Route::post('/reset-password', [EmployeeAuthController::class, 'resetPassword'])->name('reset-password');
     Route::post('/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:5,1')->name('login');
@@ -36,11 +37,14 @@ Route::prefix('management')->name('management.')->group(function (): void {
         Route::get('/suggestions/{suggestion}', [ManagementController::class, 'showSuggestion'])->middleware('permission:ticket.view')->name('suggestions.show');
         Route::post('/suggestions/{suggestion}/messages', [ManagementController::class, 'storeMessage'])->middleware('permission:ticket.reply')->name('suggestions.messages.store');
         Route::patch('/suggestions/{suggestion}/workflow', [ManagementController::class, 'updateWorkflow'])->middleware('permission:ticket.update')->name('suggestions.workflow.update');
+        Route::patch('/suggestions/{suggestion}/route', [ManagementController::class, 'routeSuggestion'])->middleware('permission:ticket.assign')->name('suggestions.route');
+        Route::get('/ticket-categories', [ManagementController::class, 'categories'])->middleware('permission:ticket.view')->name('ticket-categories.index');
+    });
+    Route::middleware(['auth', 'role:super_admin'])->group(function (): void {
         Route::get('/categories', [ManagementController::class, 'categories'])->name('categories.index');
         Route::post('/categories', [ManagementController::class, 'storeCategory'])->name('categories.store');
         Route::patch('/categories/{category}', [ManagementController::class, 'updateCategory'])->name('categories.update');
-    });
-    Route::middleware(['auth', 'role:super_admin'])->group(function (): void {
+        Route::delete('/categories/{category}', [ManagementController::class, 'destroyCategory'])->name('categories.destroy');
         Route::get('/users', [ManagementController::class, 'managementUsers'])->name('users.index');
         Route::post('/users', [ManagementController::class, 'storeManagementUser'])->name('users.store');
         Route::patch('/users/{user}/access', [ManagementController::class, 'updateUserAccess'])->name('users.access.update');

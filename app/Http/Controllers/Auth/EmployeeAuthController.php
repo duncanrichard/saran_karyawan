@@ -84,6 +84,44 @@ class EmployeeAuthController extends Controller
         ]);
     }
 
+    public function resendVerificationOtp(Request $request): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email']]);
+        $user = User::query()->where('email', $data['email'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages(['email' => 'Akun dengan email tersebut tidak ditemukan.']);
+        }
+
+        if ($user->email_verified_at) {
+            throw ValidationException::withMessages(['email' => 'Email ini sudah diverifikasi. Silakan masuk.']);
+        }
+
+        $code = (string) random_int(100000, 999999);
+
+        DB::transaction(function () use ($code, $user): void {
+            DB::table('email_verification_codes')
+                ->where('user_id', $user->id)
+                ->whereNull('consumed_at')
+                ->update(['consumed_at' => now(), 'updated_at' => now()]);
+
+            DB::table('email_verification_codes')->insert([
+                'id' => (string) Str::uuid7(),
+                'user_id' => $user->id,
+                'code_hash' => Hash::make($code),
+                'expires_at' => now()->addMinutes((int) config('auth.otp_expiration_minutes')),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        Mail::to($user->email)->send(new EmployeeVerificationCodeMail($code, $user->first_name));
+
+        return response()->json([
+            'message' => 'OTP baru telah dikirim. Gunakan kode terbaru dari email Anda.',
+        ]);
+    }
+
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
         Password::sendResetLink($request->safe()->only('email'));
@@ -139,13 +177,19 @@ class EmployeeAuthController extends Controller
             ]);
         }
 
+        if (! $user->hasRole('employee')) {
+            throw ValidationException::withMessages([
+                'username' => 'Akun ini tidak memiliki akses Karyawan. Gunakan login Management.',
+            ]);
+        }
+
         Auth::login($user, (bool) ($data['remember'] ?? false));
         $request->session()->regenerate();
 
         return response()->json([
             'message' => 'Anda berhasil masuk.',
             'user' => $user->only(['id', 'first_name', 'last_name', 'username', 'email', 'role']),
-            'redirect_to' => $user->hasAnyRole(['management', 'super_admin']) ? '/management' : null,
+            'redirect_to' => null,
         ]);
     }
 

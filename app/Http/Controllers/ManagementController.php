@@ -14,9 +14,11 @@ use Illuminate\Validation\Rule;
 
 class ManagementController extends Controller
 {
+    private const SYSTEM_ROLE_NAMES = ['employee', 'management', 'super_admin'];
+
     public function roles(): JsonResponse
     {
-        return response()->json(['roles' => Role::query()->orderBy('name')->get()]);
+        return response()->json(['roles' => Role::query()->whereNotIn('name', ['employee', 'management'])->orderBy('name')->get()]);
     }
 
     public function storeRole(Request $request): JsonResponse
@@ -102,6 +104,7 @@ class ManagementController extends Controller
         $search = trim((string) ($data['search'] ?? ''));
         $paginator = Suggestion::query()
             ->with(['category:id,name', 'submittedBy:id,first_name,last_name,username'])
+            ->when(! $request->user()->hasRole('super_admin'), fn ($query) => $query->whereIn('category_id', $request->user()->handledCategories()->select('suggestion_categories.id')))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {
                     $nested->where('ticket_number', 'ilike', "%{$search}%")
@@ -130,6 +133,8 @@ class ManagementController extends Controller
 
     public function showSuggestion(Suggestion $suggestion): JsonResponse
     {
+        $this->ensureSuggestionAccess(request(), $suggestion);
+
         return response()->json(['suggestion' => $suggestion->load([
             'category:id,name',
             'attachments:id,suggestion_id,original_name,mime_type,size,url_system',
@@ -140,6 +145,7 @@ class ManagementController extends Controller
 
     public function storeMessage(Request $request, Suggestion $suggestion): JsonResponse
     {
+        $this->ensureSuggestionAccess($request, $suggestion);
         $data = $request->validate(['body' => ['required', 'string', 'max:3000']]);
         $message = $suggestion->messages()->create([
             'sender_id' => $request->user()->id,
@@ -154,6 +160,7 @@ class ManagementController extends Controller
 
     public function updateWorkflow(Request $request, Suggestion $suggestion): JsonResponse
     {
+        $this->ensureSuggestionAccess($request, $suggestion);
         $data = $request->validate(['status' => ['required', Rule::in(['Baru', 'Diproses', 'Menunggu karyawan', 'Selesai'])], 'priority' => ['required', Rule::in(['Rendah', 'Sedang', 'Tinggi'])], 'assignee_id' => ['nullable', 'uuid', 'exists:users,id'], 'note' => ['nullable', 'string', 'max:1000']]);
         $due = now()->addDays(['Tinggi' => 1, 'Sedang' => 3, 'Rendah' => 7][$data['priority']]);
         DB::transaction(function () use ($request, $suggestion, $data, $due): void {
@@ -166,9 +173,28 @@ class ManagementController extends Controller
         return response()->json(['suggestion' => $suggestion->fresh()]);
     }
 
+    public function routeSuggestion(Request $request, Suggestion $suggestion): JsonResponse
+    {
+        abort_unless($request->user()->hasRole('super_admin'), 403);
+        $data = $request->validate(['category_id' => ['required', 'uuid', 'exists:suggestion_categories,id']]);
+        $category = SuggestionCategory::query()->findOrFail($data['category_id']);
+        abort_if(strcasecmp($category->name, 'Lainnya') === 0, 422, 'Pilih kategori tujuan selain Lainnya.');
+
+        $suggestion->update(['category_id' => $category->id, 'status' => 'Diproses']);
+
+        return response()->json(['suggestion' => $suggestion->fresh()->load('category:id,name')]);
+    }
+
     private function notifyOwner(Suggestion $suggestion, string $title, string $body): void
     {
         if ($suggestion->created_by) DB::table('notifications')->insert(['id' => (string) Str::uuid7(), 'user_id' => $suggestion->created_by, 'suggestion_id' => $suggestion->id, 'type' => 'ticket', 'title' => $title, 'body' => $body, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    private function ensureSuggestionAccess(Request $request, Suggestion $suggestion): void
+    {
+        if ($request->user()->hasRole('super_admin')) return;
+
+        abort_unless($request->user()->handledCategories()->whereKey($suggestion->category_id)->exists(), 403);
     }
 
     public function categories(): JsonResponse
@@ -198,11 +224,25 @@ class ManagementController extends Controller
         return response()->json(['category' => $category->fresh()]);
     }
 
+    public function destroyCategory(SuggestionCategory $category): JsonResponse
+    {
+        abort_if(
+            Suggestion::query()->where('category_id', $category->id)->exists(),
+            422,
+            'Kategori tidak dapat dihapus karena sudah digunakan oleh tiket.'
+        );
+
+        $category->delete();
+
+        return response()->json(['message' => 'Kategori berhasil dihapus.']);
+    }
+
     public function managementUsers(): JsonResponse
     {
         return response()->json([
-            'users' => User::query()->with('roles:id,name,description')->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name', 'username', 'email', 'role', 'is_active', 'created_at']),
-            'roles' => Role::query()->orderBy('name')->get(['id', 'name', 'description']),
+            'users' => User::query()->with(['roles:id,name,description', 'handledCategories:id,name'])->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name', 'username', 'email', 'role', 'is_active', 'created_at']),
+            'roles' => Role::query()->whereNotIn('name', ['employee', 'management'])->orderBy('name')->get(['id', 'name', 'description']),
+            'categories' => SuggestionCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -211,20 +251,48 @@ class ManagementController extends Controller
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'username' => ['required', 'string', 'max:60', 'alpha_dash', 'unique:users,username'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:12', 'confirmed'],
+            'username' => ['required', 'string', 'max:60', 'alpha_dash'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['nullable', 'string', 'min:12', 'confirmed'],
+            'accesses' => ['required', 'array', 'min:1'],
+            'accesses.*' => [Rule::in(['employee', 'management'])],
+            'role_id' => ['nullable', 'uuid', Rule::exists('roles', 'id')->whereNotIn('name', self::SYSTEM_ROLE_NAMES)],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['uuid', 'exists:suggestion_categories,id'],
         ]);
 
-        $user = User::create([
-            ...$data,
-            'role' => 'management',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        $userByEmail = User::query()->where('email', $data['email'])->first();
+        $userByUsername = User::query()->where('username', $data['username'])->first();
+        abort_if($userByEmail && $userByUsername && $userByEmail->id !== $userByUsername->id, 422, 'Email dan username sudah digunakan oleh akun yang berbeda.');
 
-        $user->syncRoles(['management']);
-        return response()->json(['user' => $user->load('roles:id,name,description')], 201);
+        $user = $userByEmail ?? $userByUsername;
+        if ($user) {
+            abort_if($user->email !== $data['email'] || $user->username !== $data['username'], 422, 'Gunakan email dan username dari akun karyawan yang sudah terdaftar.');
+        } else {
+            abort_if(empty($data['password']), 422, 'Password wajib diisi untuk akun baru.');
+            $user = User::create([
+                ...$data,
+                'role' => 'employee',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]);
+        }
+
+        $isManagement = in_array('management', $data['accesses'], true);
+        $isEmployee = in_array('employee', $data['accesses'], true);
+        $user->update(['role' => $isManagement && $isEmployee ? 'both' : ($isManagement ? 'management' : 'employee')]);
+        $roles = $isEmployee ? ['employee'] : [];
+        if ($isManagement) $roles[] = 'management';
+        if ($isManagement && ! empty($data['role_id'])) $roles[] = $this->customRoleName($data['role_id']);
+        $user->syncRoles(array_filter($roles));
+        $user->handledCategories()->sync(
+            SuggestionCategory::query()
+                ->whereIn('id', $isManagement ? ($data['category_ids'] ?? []) : [])
+                ->whereRaw('LOWER(name) <> ?', ['lainnya'])
+                ->pluck('id')
+        );
+
+        return response()->json(['user' => $user->load(['roles:id,name,description', 'handledCategories:id,name'])], $user->wasRecentlyCreated ? 201 : 200);
     }
 
     public function updateUserAccess(Request $request, User $user): JsonResponse
@@ -233,15 +301,37 @@ class ManagementController extends Controller
         abort_if($user->role === 'super_admin', 422, 'Peran Super Admin hanya dapat diatur melalui database.');
 
         $data = $request->validate([
-            'role' => ['required', Rule::in(['employee', 'management'])],
+            'accesses' => ['required', 'array', 'min:1'],
+            'accesses.*' => [Rule::in(['employee', 'management'])],
             'is_active' => ['required', 'boolean'],
-            'role_id' => ['nullable', 'uuid', 'exists:roles,id'],
+            'role_id' => ['nullable', 'uuid', Rule::exists('roles', 'id')->whereNotIn('name', self::SYSTEM_ROLE_NAMES)],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['uuid', 'exists:suggestion_categories,id'],
         ]);
-        $user->update(['role' => $data['role'], 'is_active' => $data['is_active']]);
-        $roles = [$data['role']];
-        if ($data['role'] === 'management' && ! empty($data['role_id'])) $roles[] = Role::query()->findOrFail($data['role_id'])->name;
-        $user->syncRoles($roles);
+        $isManagement = in_array('management', $data['accesses'], true);
+        $isEmployee = in_array('employee', $data['accesses'], true);
+        $user->update(['role' => $isManagement && $isEmployee ? 'both' : ($isManagement ? 'management' : 'employee'), 'is_active' => $data['is_active']]);
+        $roles = $isEmployee ? ['employee'] : [];
+        if ($isManagement) $roles[] = 'management';
+        if ($isManagement && ! empty($data['role_id'])) $roles[] = $this->customRoleName($data['role_id']);
+        $user->syncRoles(array_filter($roles));
+        $user->handledCategories()->sync(
+            $isManagement
+                ? SuggestionCategory::query()
+                    ->whereIn('id', $data['category_ids'] ?? [])
+                    ->whereRaw('LOWER(name) <> ?', ['lainnya'])
+                    ->pluck('id')
+                : []
+        );
 
-        return response()->json(['user' => $user->fresh()->load('roles:id,name,description')]);
+        return response()->json(['user' => $user->fresh()->load(['roles:id,name,description', 'handledCategories:id,name'])]);
+    }
+
+    private function customRoleName(string $roleId): string
+    {
+        return Role::query()
+            ->whereKey($roleId)
+            ->whereNotIn('name', self::SYSTEM_ROLE_NAMES)
+            ->valueOrFail('name');
     }
 }
