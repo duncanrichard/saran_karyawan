@@ -62,6 +62,7 @@ class StoreSuggestionTest extends TestCase
         $manager->assignRole('management');
         $inactiveManager->assignRole('management');
         $category = SuggestionCategory::query()->firstOrCreate(['name' => 'Teknologi'], ['is_active' => true]);
+        $manager->handledCategories()->sync([$category->id]);
 
         $response = $this->actingAs($employee)->postJson('/suggestions', [
             'category_id' => $category->id,
@@ -78,7 +79,7 @@ class StoreSuggestionTest extends TestCase
             'title' => 'Tiket baru masuk',
         ]);
         $this->assertDatabaseMissing('notifications', ['user_id' => $inactiveManager->id]);
-        Event::assertDispatched(NewManagementTicket::class, fn (NewManagementTicket $event) => $event->suggestionId === $response->json('suggestion.id'));
+        Event::assertDispatched(NewManagementTicket::class, fn (NewManagementTicket $event) => $event->recipientIds === [$manager->id]);
     }
 
     public function test_anonymous_suggestion_does_not_store_employee_identity(): void

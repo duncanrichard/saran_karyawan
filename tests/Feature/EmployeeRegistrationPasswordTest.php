@@ -121,4 +121,29 @@ class EmployeeRegistrationPasswordTest extends TestCase
             'password' => 'PasswordAman!123',
         ])->assertOk()->assertJsonPath('redirect_to', null);
     }
+
+    public function test_employee_can_save_profile_name_to_the_database(): void
+    {
+        $employeeRole = Role::firstOrCreate(['name' => 'employee', 'guard_name' => 'web']);
+        $user = User::factory()->create([
+            'first_name' => 'Nama',
+            'last_name' => 'Lama',
+        ]);
+        $user->assignRole($employeeRole);
+
+        $this->actingAs($user)
+            ->patchJson('/auth/profile', [
+                'first_name' => 'Nama',
+                'last_name' => 'Baru',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Profil berhasil disimpan.')
+            ->assertJsonPath('user.last_name', 'Baru');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'first_name' => 'Nama',
+            'last_name' => 'Baru',
+        ]);
+    }
 }

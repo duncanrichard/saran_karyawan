@@ -7,14 +7,15 @@ use App\Http\Controllers\SuggestionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->name('auth.')->group(function (): void {
-    Route::post('/register', [EmployeeAuthController::class, 'register'])->name('register');
-    Route::post('/verify-email', [EmployeeAuthController::class, 'verifyEmail'])->name('verify-email');
+    Route::post('/register', [EmployeeAuthController::class, 'register'])->middleware('throttle:registration')->name('register');
+    Route::post('/verify-email', [EmployeeAuthController::class, 'verifyEmail'])->middleware('throttle:email-verification')->name('verify-email');
     Route::post('/resend-verification-otp', [EmployeeAuthController::class, 'resendVerificationOtp'])->middleware('throttle:3,1')->name('resend-verification-otp');
     Route::post('/forgot-password', [EmployeeAuthController::class, 'forgotPassword'])->middleware('throttle:3,1')->name('forgot-password');
     Route::post('/reset-password', [EmployeeAuthController::class, 'resetPassword'])->name('reset-password');
     Route::post('/login', [EmployeeAuthController::class, 'login'])->middleware('throttle:5,1')->name('login');
     Route::post('/logout', [EmployeeAuthController::class, 'logout'])->middleware('auth')->name('logout');
     Route::get('/user', [EmployeeAuthController::class, 'user'])->middleware('auth')->name('user');
+    Route::patch('/profile', [EmployeeAuthController::class, 'updateProfile'])->middleware(['auth', 'role:employee'])->name('profile.update');
 });
 
 Route::middleware('auth')->prefix('suggestions')->name('suggestions.')->group(function (): void {
@@ -31,6 +32,8 @@ Route::prefix('management')->name('management.')->group(function (): void {
         Route::get('/auth/user', [ManagementAuthController::class, 'user'])->name('auth.user');
         Route::post('/auth/logout', [ManagementAuthController::class, 'logout'])->name('auth.logout');
         Route::get('/dashboard', [ManagementController::class, 'dashboard'])->middleware('permission:ticket.view')->name('dashboard');
+        Route::get('/reports', [ManagementController::class, 'reports'])->middleware('permission:ticket.view')->name('reports.index');
+        Route::get('/reports/export', [ManagementController::class, 'exportReports'])->middleware('permission:ticket.view')->name('reports.export');
         Route::get('/notifications', [ManagementController::class, 'notifications'])->middleware('permission:ticket.view')->name('notifications.index');
         Route::patch('/notifications/{notification}/read', [ManagementController::class, 'markNotificationRead'])->middleware('permission:ticket.view')->whereUuid('notification')->name('notifications.read');
         Route::get('/suggestions', [ManagementController::class, 'suggestions'])->middleware('permission:ticket.view')->name('suggestions.index');

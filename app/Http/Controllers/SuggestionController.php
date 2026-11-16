@@ -98,8 +98,8 @@ class SuggestionController extends Controller
             return $suggestion->load(['category:id,name', 'attachments:id,suggestion_id,original_name,mime_type,size,url_system', 'messages.sender:id,first_name,last_name,role']);
         });
 
-        $this->notifyManagementOfNewTicket($suggestion);
-        event(new NewManagementTicket($suggestion->id, $suggestion->ticket_number, $suggestion->title));
+        $recipientIds = $this->notifyManagementOfNewTicket($suggestion);
+        event(new NewManagementTicket($recipientIds));
 
         return response()->json([
             'message' => 'Saran berhasil disimpan sebagai tiket.',
@@ -152,15 +152,22 @@ class SuggestionController extends Controller
         return $ticketNumber;
     }
 
-    private function notifyManagementOfNewTicket(Suggestion $suggestion): void
+    /** @return array<int, string> */
+    private function notifyManagementOfNewTicket(Suggestion $suggestion): array
     {
         $recipientIds = User::query()
             ->where('is_active', true)
-            ->whereHas('roles', fn ($roles) => $roles->whereIn('name', ['management', 'super_admin']))
+            ->where(function ($query) use ($suggestion): void {
+                $query->whereHas('roles', fn ($roles) => $roles->where('name', 'super_admin'))
+                    ->orWhere(function ($management) use ($suggestion): void {
+                        $management->whereHas('roles', fn ($roles) => $roles->where('name', 'management'))
+                            ->whereHas('handledCategories', fn ($categories) => $categories->whereKey($suggestion->category_id));
+                    });
+            })
             ->pluck('id');
 
         if ($recipientIds->isEmpty()) {
-            return;
+            return [];
         }
 
         $now = now();
@@ -174,5 +181,7 @@ class SuggestionController extends Controller
             'created_at' => $now,
             'updated_at' => $now,
         ])->all());
+
+        return $recipientIds->all();
     }
 }

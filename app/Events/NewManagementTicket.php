@@ -13,14 +13,16 @@ class NewManagementTicket implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public readonly string $suggestionId,
-        public readonly string $ticketNumber,
-        public readonly string $title,
+        /** @var array<int, string> */
+        public readonly array $recipientIds,
     ) {}
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('management.notifications')];
+        return array_map(
+            fn (string $userId) => new PrivateChannel("App.Models.User.{$userId}"),
+            $this->recipientIds,
+        );
     }
 
     public function broadcastAs(): string

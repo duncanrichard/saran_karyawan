@@ -6,6 +6,7 @@ use App\Models\Suggestion;
 use App\Models\SuggestionCategory;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\XlsxReportExporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,17 +45,25 @@ class ManagementController extends Controller
         return response()->json(['message' => 'Role berhasil dihapus.']);
     }
 
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
+        $isSuperAdmin = $request->user()->hasRole('super_admin');
+        $handledCategoryIds = $request->user()->handledCategories()->select('suggestion_categories.id');
+        $tickets = Suggestion::query()->when(! $isSuperAdmin, fn ($query) => $query->whereIn('category_id', $handledCategoryIds));
+        $categories = SuggestionCategory::query()->when(! $isSuperAdmin, fn ($query) => $query->whereIn('suggestion_categories.id', $handledCategoryIds));
+
         return response()->json([
             'dashboard' => [
-                'total_tickets' => Suggestion::query()->count(),
-                'today_tickets' => Suggestion::query()->whereDate('submitted_at', today())->count(),
-                'anonymous_tickets' => Suggestion::query()->where('is_anonymous', true)->count(),
-                'management_responses' => DB::table('suggestion_messages')->where('sender_type', 'management')->count(),
-                'active_categories' => SuggestionCategory::query()->where('is_active', true)->count(),
-                'recent_tickets' => Suggestion::query()->with('category:id,name')->latest('submitted_at')->limit(5)->get(['id', 'ticket_number', 'category_id', 'title', 'submitted_at']),
-                'category_complaints' => SuggestionCategory::query()
+                'total_tickets' => (clone $tickets)->count(),
+                'today_tickets' => (clone $tickets)->whereDate('submitted_at', today())->count(),
+                'anonymous_tickets' => (clone $tickets)->where('is_anonymous', true)->count(),
+                'management_responses' => DB::table('suggestion_messages')
+                    ->where('sender_type', 'management')
+                    ->whereIn('suggestion_id', (clone $tickets)->select('id'))
+                    ->count(),
+                'active_categories' => (clone $categories)->where('is_active', true)->count(),
+                'recent_tickets' => (clone $tickets)->with('category:id,name')->latest('submitted_at')->limit(5)->get(['id', 'ticket_number', 'category_id', 'title', 'submitted_at']),
+                'category_complaints' => (clone $categories)
                     ->leftJoin('suggestions', 'suggestions.category_id', '=', 'suggestion_categories.id')
                     ->select('suggestion_categories.id', 'suggestion_categories.name', DB::raw('COUNT(suggestions.id) as total'))
                     ->groupBy('suggestion_categories.id', 'suggestion_categories.name')
@@ -63,6 +72,81 @@ class ManagementController extends Controller
                     ->get(),
             ],
         ]);
+    }
+
+    public function reports(Request $request): JsonResponse
+    {
+        $data = $this->validatedReportFilters($request);
+        $suggestions = $this->reportSuggestions($request, $data);
+
+        return response()->json([
+            'report' => [
+                'summary' => [
+                    'total' => (clone $suggestions)->count(),
+                    'new' => (clone $suggestions)->where('status', 'Baru')->count(),
+                    'in_progress' => (clone $suggestions)->where('status', 'Diproses')->count(),
+                    'waiting_employee' => (clone $suggestions)->where('status', 'Menunggu karyawan')->count(),
+                    'completed' => (clone $suggestions)->where('status', 'Selesai')->count(),
+                    'anonymous' => (clone $suggestions)->where('is_anonymous', true)->count(),
+                    'overdue' => (clone $suggestions)->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->where('status', '!=', 'Selesai')->count(),
+                ],
+                'by_status' => (clone $suggestions)
+                    ->select('status', DB::raw('COUNT(*) as total'))
+                    ->groupBy('status')
+                    ->orderBy('status')
+                    ->get(),
+                'by_category' => (clone $suggestions)
+                    ->join('suggestion_categories', 'suggestion_categories.id', '=', 'suggestions.category_id')
+                    ->select('suggestion_categories.id', 'suggestion_categories.name', DB::raw('COUNT(suggestions.id) as total'))
+                    ->groupBy('suggestion_categories.id', 'suggestion_categories.name')
+                    ->orderByDesc('total')
+                    ->get(),
+                'generated_at' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    public function exportReports(Request $request, XlsxReportExporter $exporter)
+    {
+        $data = $this->validatedReportFilters($request);
+        $rows = $this->reportSuggestions($request, $data)
+            ->with('category:id,name')
+            ->latest('submitted_at')
+            ->get(['ticket_number', 'category_id', 'title', 'status', 'priority', 'is_anonymous', 'submitted_at', 'closed_at', 'sla_due_at']);
+
+        return $exporter->download(
+            ['Nomor tiket', 'Kategori', 'Judul', 'Status', 'Prioritas', 'Anonim', 'Dibuat', 'Selesai', 'Batas SLA'],
+            $rows->map(fn (Suggestion $suggestion) => [
+                $suggestion->ticket_number,
+                $suggestion->category?->name,
+                $suggestion->title,
+                $suggestion->status,
+                $suggestion->priority,
+                $suggestion->is_anonymous ? 'Ya' : 'Tidak',
+                $suggestion->submitted_at?->format('Y-m-d H:i'),
+                $suggestion->closed_at?->format('Y-m-d H:i'),
+                $suggestion->sla_due_at?->format('Y-m-d H:i'),
+            ])->all(),
+            'laporan-tiket-'.now()->format('Ymd-His').'.xlsx',
+        );
+    }
+
+    private function validatedReportFilters(Request $request): array
+    {
+        return $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'category_id' => ['nullable', 'uuid', 'exists:suggestion_categories,id'],
+        ]);
+    }
+
+    private function reportSuggestions(Request $request, array $filters)
+    {
+        return Suggestion::query()
+            ->when(! $request->user()->hasRole('super_admin'), fn ($query) => $query->whereIn('category_id', $request->user()->handledCategories()->select('suggestion_categories.id')))
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('submitted_at', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('submitted_at', '<=', $filters['date_to']))
+            ->when(isset($filters['category_id']), fn ($query) => $query->where('category_id', $filters['category_id']));
     }
 
     public function notifications(Request $request): JsonResponse
@@ -197,9 +281,18 @@ class ManagementController extends Controller
         abort_unless($request->user()->handledCategories()->whereKey($suggestion->category_id)->exists(), 403);
     }
 
-    public function categories(): JsonResponse
+    public function categories(Request $request): JsonResponse
     {
-        return response()->json(['categories' => SuggestionCategory::query()->orderByDesc('is_active')->orderBy('name')->get()]);
+        $categories = SuggestionCategory::query()
+            ->when(
+                ! $request->user()->hasRole('super_admin'),
+                fn ($query) => $query->whereIn('id', $request->user()->handledCategories()->select('suggestion_categories.id')),
+            )
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json(['categories' => $categories]);
     }
 
     public function storeCategory(Request $request): JsonResponse

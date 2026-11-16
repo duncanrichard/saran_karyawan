@@ -23,6 +23,10 @@ class ManagementAuthController extends Controller
             throw ValidationException::withMessages(['username' => 'Akun management atau password tidak sesuai.']);
         }
 
+        if (! $user->email_verified_at) {
+            throw ValidationException::withMessages(['username' => 'Verifikasi email perusahaan terlebih dahulu.']);
+        }
+
         if (! $user->is_active) {
             throw ValidationException::withMessages(['username' => 'Akun management ini tidak aktif.']);
         }

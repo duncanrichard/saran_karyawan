@@ -439,6 +439,15 @@
         grid-column: span 2;
     }
 
+    .ticket-date-range {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .ticket-date-range > label {
+        width: 100%;
+    }
+
     .ticket-list-scroll {
         max-height: none;
         overflow: visible;

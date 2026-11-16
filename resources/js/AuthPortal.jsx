@@ -168,7 +168,7 @@ export default function AuthPortal() {
                 <button className="session-sign-out fixed right-4 top-3 z-20 inline-flex min-h-11 items-center rounded-xl border border-[#4d668f] bg-[#111a31] px-4 text-sm font-semibold text-[#f3c2aa] shadow-[0_8px_18px_rgba(13,24,52,0.22)] hover:bg-[#1c2b52] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#c96740]" onClick={signOut} type="button">
                     <span className="sm:hidden">Keluar</span><span className="hidden sm:inline">Sign out</span>
                 </button>
-                <EmployeePortal />
+                <EmployeePortal onUserUpdated={setUser} user={user} />
             </div>
         );
     }

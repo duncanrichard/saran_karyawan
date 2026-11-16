@@ -208,4 +208,19 @@ class EmployeeAuthController extends Controller
             'user' => $request->user()->only(['id', 'first_name', 'last_name', 'username', 'email', 'role']),
         ]);
     }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+        ]);
+
+        $request->user()->update($data);
+
+        return response()->json([
+            'message' => 'Profil berhasil disimpan.',
+            'user' => $request->user()->fresh()->only(['id', 'first_name', 'last_name', 'username', 'email', 'role']),
+        ]);
+    }
 }

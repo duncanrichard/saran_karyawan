@@ -33,6 +33,7 @@ class Suggestion extends Model
             'is_anonymous' => 'boolean',
             'submitted_at' => 'datetime',
             'closed_at' => 'datetime',
+            'sla_due_at' => 'datetime',
         ];
     }
 

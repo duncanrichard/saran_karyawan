@@ -763,41 +763,43 @@ function Tickets({
                     options={responseOptions}
                     value={draftFilters.responseFilter}
                 />
-                <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-[#49665d]">
-                    Dari tanggal
-                    <input
-                        className="min-h-11 min-w-0 w-full rounded-xl border border-[#aebfb6] bg-white px-3 text-sm font-normal"
-                        max={draftFilters.dateTo || undefined}
-                        onChange={(event) =>
-                            setDraftFilters((current) => ({
-                                ...current,
-                                dateFrom: event.target.value,
-                                dateTo:
-                                    current.dateTo &&
-                                    event.target.value > current.dateTo
-                                        ? ""
-                                        : current.dateTo,
-                            }))
-                        }
-                        type="date"
-                        value={draftFilters.dateFrom}
-                    />
-                </label>
-                <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-[#49665d]">
-                    Sampai tanggal
-                    <input
-                        className="min-h-11 min-w-0 w-full rounded-xl border border-[#aebfb6] bg-white px-3 text-sm font-normal"
-                        min={draftFilters.dateFrom || undefined}
-                        onChange={(event) =>
-                            setDraftFilters((current) => ({
-                                ...current,
-                                dateTo: event.target.value,
-                            }))
-                        }
-                        type="date"
-                        value={draftFilters.dateTo}
-                    />
-                </label>
+                <div className="ticket-date-range col-span-full grid w-full min-w-0 grid-cols-1 gap-3 min-[340px]:grid-cols-2 sm:col-span-2 lg:col-span-2 2xl:col-span-2">
+                    <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-[#49665d]">
+                        Dari tanggal
+                        <input
+                            className="min-h-11 min-w-0 w-full rounded-xl border border-[#aebfb6] bg-white px-3 text-sm font-normal"
+                            max={draftFilters.dateTo || undefined}
+                            onChange={(event) =>
+                                setDraftFilters((current) => ({
+                                    ...current,
+                                    dateFrom: event.target.value,
+                                    dateTo:
+                                        current.dateTo &&
+                                        event.target.value > current.dateTo
+                                            ? ""
+                                            : current.dateTo,
+                                }))
+                            }
+                            type="date"
+                            value={draftFilters.dateFrom}
+                        />
+                    </label>
+                    <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-[#49665d]">
+                        Sampai tanggal
+                        <input
+                            className="min-h-11 min-w-0 w-full rounded-xl border border-[#aebfb6] bg-white px-3 text-sm font-normal"
+                            min={draftFilters.dateFrom || undefined}
+                            onChange={(event) =>
+                                setDraftFilters((current) => ({
+                                    ...current,
+                                    dateTo: event.target.value,
+                                }))
+                            }
+                            type="date"
+                            value={draftFilters.dateTo}
+                        />
+                    </label>
+                </div>
                 <div className="grid gap-1.5 sm:col-span-2 lg:col-span-3 2xl:col-span-1">
                     <span className="text-xs font-semibold text-[#49665d]">
                         Aksi
@@ -1816,6 +1818,50 @@ function Roles() {
     );
 }
 
+function Reports({ categories }) {
+    const [filters, setFilters] = useState({ date_from: "", date_to: "", category_id: "" });
+    const [report, setReport] = useState(null);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+
+    const queryString = (source = filters) => {
+        const params = new URLSearchParams();
+        if (source.date_from) params.set("date_from", source.date_from);
+        if (source.date_to) params.set("date_to", source.date_to);
+        if (source.category_id) params.set("category_id", source.category_id);
+        return params.toString();
+    };
+    const loadReport = async (source = filters) => {
+        setLoading(true);
+        setError("");
+        try {
+            const query = queryString(source);
+            const data = await jsonRequest(`/management/reports${query ? `?${query}` : ""}`);
+            setReport(data.report ?? null);
+        } catch (exception) {
+            setError(exception.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+    useEffect(() => { loadReport(); }, []);
+
+    const summary = report?.summary ?? {};
+    const cards = [
+        ["Total tiket", summary.total ?? 0],
+        ["Baru", summary.new ?? 0],
+        ["Diproses", summary.in_progress ?? 0],
+        ["Menunggu karyawan", summary.waiting_employee ?? 0],
+        ["Selesai", summary.completed ?? 0],
+        ["Melewati SLA", summary.overdue ?? 0],
+    ];
+    return <section>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-semibold tracking-[0.14em] text-[#b55234]">LAPORAN TIKET</p><h1 className="mt-2 font-serif text-4xl font-bold">Ringkasan penanganan</h1><p className="mt-2 text-sm leading-6 text-[#587068]">Data mengikuti kategori penugasan akun Anda.</p></div><button className="min-h-11 rounded-xl border border-[#aebfb6] bg-[#fbfaf6] px-4 text-sm font-semibold text-[#315b50] hover:bg-[#edf3ee]" onClick={() => { const query = queryString(); window.location.assign(`/management/reports/export${query ? `?${query}` : ""}`); }} type="button">Ekspor Excel</button></div>
+        <form className="mt-6 grid gap-4 rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6] p-5 sm:grid-cols-[1fr_1fr_1.4fr_auto] sm:items-end" onSubmit={(event) => { event.preventDefault(); loadReport(); }}><label className="grid gap-1.5 text-sm font-semibold text-[#49665d]">Dari<input className="min-h-11 rounded-xl border border-[#aebfb6] bg-white px-3 font-normal" onChange={(event) => setFilters({ ...filters, date_from: event.target.value })} type="date" value={filters.date_from} /></label><label className="grid gap-1.5 text-sm font-semibold text-[#49665d]">Sampai<input className="min-h-11 rounded-xl border border-[#aebfb6] bg-white px-3 font-normal" onChange={(event) => setFilters({ ...filters, date_to: event.target.value })} type="date" value={filters.date_to} /></label><label className="grid gap-1.5 text-sm font-semibold text-[#49665d]">Kategori<select className="min-h-11 rounded-xl border border-[#aebfb6] bg-white px-3 font-normal" onChange={(event) => setFilters({ ...filters, category_id: event.target.value })} value={filters.category_id}><option value="">Semua kategori</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><button className="min-h-11 rounded-xl bg-[#183f37] px-4 text-sm font-semibold text-white hover:bg-[#315b50]" type="submit">Terapkan</button></form>
+        {error && <p className="mt-4 rounded-xl bg-[#fff4ee] px-4 py-3 text-sm text-[#8e4129]">{error}</p>}
+        {loading ? <p className="mt-6 rounded-2xl border border-dashed border-[#b9c9bf] px-5 py-12 text-center text-sm text-[#587068]">Memuat laporan...</p> : <><div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([label, value]) => <article className="rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6] p-5" key={label}><p className="text-sm text-[#587068]">{label}</p><p className="mt-2 font-serif text-3xl font-bold text-[#183f37]">{value}</p></article>)}</div><div className="mt-6 grid gap-6 lg:grid-cols-2"><section className="rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6]"><h2 className="border-b border-[#d4ddd6] px-5 py-4 font-serif text-2xl font-bold">Status tiket</h2><div className="divide-y divide-[#e0e7e1]">{report?.by_status?.length ? report.by_status.map((item) => <div className="flex justify-between px-5 py-3 text-sm" key={item.status}><span>{item.status}</span><strong>{item.total}</strong></div>) : <p className="px-5 py-8 text-sm text-[#587068]">Belum ada data pada periode ini.</p>}</div></section><section className="rounded-2xl border border-[#d4ddd6] bg-[#fbfaf6]"><h2 className="border-b border-[#d4ddd6] px-5 py-4 font-serif text-2xl font-bold">Per kategori</h2><div className="divide-y divide-[#e0e7e1]">{report?.by_category?.length ? report.by_category.map((item) => <div className="flex justify-between gap-4 px-5 py-3 text-sm" key={item.id}><span>{item.name}</span><strong>{item.total}</strong></div>) : <p className="px-5 py-8 text-sm text-[#587068]">Belum ada data pada periode ini.</p>}</div></section></div><p className="mt-4 text-xs text-[#587068]">Dibuat {report?.generated_at ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(report.generated_at)) : "-"}.</p></>}</section>;
+}
+
 export default function ManagementPortal() {
     const [user, setUser] = useState(null);
     const [view, setView] = useState("dashboard");
@@ -1953,7 +1999,7 @@ export default function ManagementPortal() {
             enabledTransports: ["ws", "wss"],
         });
         const channel = echo
-            .private("management.notifications")
+            .private(`App.Models.User.${user.id}`)
             .listen(".ticket.created", () => loadNotifications());
 
         return () => {
@@ -2079,6 +2125,7 @@ export default function ManagementPortal() {
     const menu = [
         { key: "dashboard", label: "Dashboard" },
         { key: "tickets", label: "Semua tiket" },
+        { key: "reports", label: "Laporan" },
         ...(user.role === "super_admin"
             ? [
                   { key: "categories", label: "Kategori" },
@@ -2177,6 +2224,8 @@ export default function ManagementPortal() {
                             search={ticketSearch}
                             suggestions={suggestions}
                         />
+                    ) : view === "reports" ? (
+                        <Reports categories={categories} />
                     ) : view === "categories" ? (
                         <Categories
                             categories={categories}
